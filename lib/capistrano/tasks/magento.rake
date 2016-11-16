@@ -240,7 +240,7 @@ namespace :magento do
     namespace 'static-content' do
       desc 'Deploys static view files'
       task :deploy do
-        on primary fetch(:magento_deploy_setup_role) do
+        on release_roles :all do
           _magento_version = magento_version
 
           deploy_languages = fetch(:magento_deploy_languages).join(' ')
