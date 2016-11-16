@@ -1,9 +1,9 @@
 ##
  # Copyright © 2016 by David Alger. All rights reserved
- # 
+ #
  # Licensed under the Open Software License 3.0 (OSL-3.0)
  # See included LICENSE file for full text of OSL-3.0
- # 
+ #
  # http://davidalger.com/contact/
  ##
 
@@ -26,7 +26,7 @@ namespace :deploy do
     invoke 'magento:setup:permissions'
     if fetch(:magento_deploy_production)
       invoke 'magento:setup:static-content:deploy'
-      invoke 'magento:setup:di:compile'
+      # invoke 'magento:setup:di:compile'
     end
     invoke 'magento:setup:permissions'
     invoke 'magento:maintenance:enable' if fetch(:magento_deploy_maintenance)
