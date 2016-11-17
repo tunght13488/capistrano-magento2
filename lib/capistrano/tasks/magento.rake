@@ -87,9 +87,9 @@ namespace :magento do
         within release_path do
           composer_flags = '--prefer-dist --no-interaction'
 
-          if fetch(:magento_deploy_production)
-            composer_flags += ' --optimize-autoloader'
-          end
+          # if fetch(:magento_deploy_production)
+          #   composer_flags += ' --optimize-autoloader'
+          # end
 
           execute :composer, "install #{composer_flags} 2>&1"
 
