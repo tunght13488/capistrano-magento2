@@ -91,12 +91,11 @@ namespace :magento do
           #   composer_flags += ' --optimize-autoloader'
           # end
 
-          execute :composer, "install #{composer_flags} 2>&1"
+          # if fetch(:magento_deploy_production) and magento_version >= Gem::Version.new('2.1')
+          #   composer_flags += ' --no-dev'
+          # end
 
-          if fetch(:magento_deploy_production) and magento_version >= Gem::Version.new('2.1')
-            composer_flags += ' --no-dev'
-            execute :composer, "install #{composer_flags} 2>&1" # removes require-dev components from prev command
-          end
+          execute :composer, "install #{composer_flags} 2>&1"
 
           if test "[ -f #{release_path}/update/composer.json ]"   # can't count on this, but emit warning if not present
             execute :composer, "install #{composer_flags} -d ./update 2>&1"
