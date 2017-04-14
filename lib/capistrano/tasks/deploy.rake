@@ -26,7 +26,7 @@ namespace :deploy do
     invoke 'magento:setup:permissions'
     if fetch(:magento_deploy_production)
       invoke 'magento:setup:static-content:deploy'
-      # invoke 'magento:setup:di:compile'
+      invoke 'magento:setup:di:compile'
     end
     invoke 'magento:setup:permissions'
     invoke 'magento:maintenance:enable' if fetch(:magento_deploy_maintenance)

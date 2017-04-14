@@ -85,12 +85,13 @@ namespace :magento do
 
       on release_roles :all do
         within release_path do
-          composer_flags = '--prefer-dist --no-interaction'
+          composer_flags = '--prefer-dist --no-interaction --no-progress'
 
-          # if fetch(:magento_deploy_production)
-          #   composer_flags += ' --optimize-autoloader'
-          # end
+          if fetch(:magento_deploy_production)
+            composer_flags += ' --optimize-autoloader'
+          end
 
+          # At this time the vendor folder is empty and we cannot get magento_version
           # if fetch(:magento_deploy_production) and magento_version >= Gem::Version.new('2.1')
           #   composer_flags += ' --no-dev'
           # end
