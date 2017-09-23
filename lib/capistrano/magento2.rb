@@ -1,9 +1,9 @@
 ##
  # Copyright © 2016 by David Alger. All rights reserved
- # 
+ #
  # Licensed under the Open Software License 3.0 (OSL-3.0)
  # See included LICENSE file for full text of OSL-3.0
- # 
+ #
  # http://davidalger.com/contact/
  ##
 
@@ -33,10 +33,10 @@ module Capistrano
 
     module Setup
       def static_content_deploy params
-        if magento_version >= Gem::Version.new('2.2.0-rc')
-          # Using -f here just in case MAGE_MODE environment variable in shell is set to something other than production
-          execute :magento, "setup:static-content:deploy -f #{params}"
-        else
+        # if magento_version >= Gem::Version.new('2.2.0-rc')
+        #   # Using -f here just in case MAGE_MODE environment variable in shell is set to something other than production
+        #   execute :magento, "setup:static-content:deploy -f #{params}"
+        # else
           # Sets pipefail option in shell allowing command exit codes to halt execution when piping command output
           if not SSHKit.config.command_map[:magento].include? 'set -o pipefail' # avoids trouble on multi-host deploys
             @@pipefail_less = SSHKit.config.command_map[:magento].dup
@@ -47,7 +47,7 @@ module Capistrano
 
           # Unsets pipefail option in shell so it won't affect future command executions
           SSHKit.config.command_map[:magento] = @@pipefail_less
-        end
+        # end
       end
 
       def deployed_version
