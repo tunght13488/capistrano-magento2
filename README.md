@@ -4,6 +4,10 @@
 
 A Capistrano extension for Magento 2 deployments. Takes care of specific Magento 2 requirements and adds tasks specific to the Magento 2 application.
 
+## Supported Magento Versions
+
+**As of version 0.7.0 this gem only supports deployment of Magento 2.1.1 or later; please use an earlier version to deploy older releases of Magento 2**
+
 ## Installation
 
 ### Standalone Installation
@@ -119,8 +123,8 @@ Before you can use Capistrano to deploy, you must configure the `config/deploy.r
 | `:magento_deploy_setup_role`   | `:all`  | Role from which primary host is chosen to run things like setup:upgrade on
 | `:magento_deploy_cache_shared` | `true`  | If true, cache operations are restricted to the primary node in setup role
 | `:magento_deploy_languages`    | `['en_US']` | Array of languages passed to static content deploy routine
-| `:magento_deploy_themes`       | `[]`   | Array of themes passed to static content deploy (Magento 2.1.1 and later)
-| `:magento_deploy_jobs`         | `4`    | Number of threads to use for static content deploy (Magento 2.1.1 and later)
+| `:magento_deploy_themes`       | `[]`   | Array of themes passed to static content deploy
+| `:magento_deploy_jobs`         | `4`    | Number of threads to use for static content deploy
 | `:magento_deploy_composer`     | `true` | Enables composer install behaviour in the built-in deploy routine
 | `:magento_deploy_production`   | `true` | Enables production specific DI compilation and static content generation
 | `:magento_deploy_maintenance`  | `true` | Enables use of maintenance mode while magento:setup:upgrade runs
@@ -148,6 +152,7 @@ For the sake of simplicity in new project setups `:linked_dirs` and `:linked_fil
 ```ruby
 set :linked_files, [
   'app/etc/env.php',
+  'app/etc/config.local.php',
   'var/.setup_cronjob_status',
   'var/.update_cronjob_status'
 ]
@@ -170,6 +175,8 @@ If you would like to customize the linked files or directories for your project,
 ```ruby
 append :linked_dirs, 'path/to/link'
 ```
+
+Support for a `app/etc/config.local.php` configuration file was added to Magento 2.1.6. This file will be linked in from the `shared/app/etc` directory as of v0.6.4 of this gem. If this file is present in the project repository, the file will not be linked.
 
 ### Composer Auth Credentials
 
@@ -209,6 +216,8 @@ All Magento 2 tasks used by the built-in `deploy.rake` file as well as some addi
 | magento:cache:status                  | Check Magento cache enabled status                 |
 | magento:cache:varnish:ban             | Add ban to Varnish for url(s)                      |
 | magento:composer:install              | Run composer install                               |
+| magento:deploy:mode:production        | Enables production mode                            |
+| magento:deploy:mode:show              | Displays current application mode                  |
 | magento:indexer:info                  | Shows allowed indexers                             |
 | magento:indexer:reindex               | Reindex data by all indexers                       |
 | magento:indexer:set-mode[mode,index]  | Sets mode of all indexers                          |

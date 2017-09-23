@@ -85,16 +85,11 @@ namespace :magento do
 
       on release_roles :all do
         within release_path do
-          composer_flags = '--prefer-dist --no-interaction --no-progress'
+          composer_flags = '--no-dev --prefer-dist --no-interaction --no-progress'
 
           if fetch(:magento_deploy_production)
             composer_flags += ' --optimize-autoloader'
           end
-
-          # At this time the vendor folder is empty and we cannot get magento_version
-          # if fetch(:magento_deploy_production) and magento_version >= Gem::Version.new('2.1')
-          #   composer_flags += ' --no-dev'
-          # end
 
           execute :composer, "install #{composer_flags} 2>&1"
 
@@ -123,6 +118,39 @@ namespace :magento do
   end
 
   namespace :deploy do
+    namespace :mode do
+      desc "Enables production mode"
+      task :production do
+        on release_roles :all do
+          within release_path do
+            execute :magento, "deploy:mode:set production --skip-compilation"
+          end
+        end
+      end
+
+      desc "Displays current application mode"
+      task :show do
+        on release_roles :all do
+          within release_path do
+            execute :magento, "deploy:mode:show"
+          end
+        end
+      end
+    end
+
+    task :version_check do
+      on release_roles :all do
+        within release_path do
+          _magento_version = magento_version
+          unless _magento_version >= Gem::Version.new('2.1.1')
+            error "\e[0;31mVersion 0.7.0 and later of this gem only support deployment of Magento 2.1.1 or newer; " +
+              "attempted to deploy v" + _magento_version.to_s + ". Please try again using an earlier version of this gem!\e[0m"
+            exit 1  # only need to check a single server, exit immediately
+          end
+        end
+      end
+    end
+
     task :check do
       on release_roles :all do
         next unless any? :linked_files_touch
@@ -155,6 +183,17 @@ namespace :magento do
       end
       exit 1 if is_err
     end
+
+    task :local_config do
+      on release_roles :all do
+        if test "[ -f #{release_path}/app/etc/config.local.php ]"
+          info "The repository contains app/etc/config.local.php, removing from :linked_files list."
+          _linked_files = fetch(:linked_files, [])
+          _linked_files.delete('app/etc/config.local.php')
+          set :linked_files, _linked_files
+        end
+      end
+    end
   end
 
   namespace :setup do
@@ -184,7 +223,7 @@ namespace :magento do
         on primary fetch(:magento_deploy_setup_role) do
           within release_path do
             db_status = capture :magento, 'setup:db:status --no-ansi', verbosity: Logger::INFO
-            
+
             if not db_status.to_s.include? 'All modules are up to date'
               execute :magento, 'setup:db-schema:upgrade'
               execute :magento, 'setup:db-data:upgrade'
@@ -232,16 +271,8 @@ namespace :magento do
       task :compile do
         on release_roles :all do
           within release_path do
-            # Due to a bug in the single-tenant compiler released in 2.0 (see here for details: http://bit.ly/21eMPtt)
-            # we have to use multi-tenant currently. However, the multi-tenant is being dropped in 2.1 and is no longer
-            # present in the develop mainline, so we are testing for multi-tenant presence for long-term portability.
-            if test :magento, 'setup:di:compile-multi-tenant --help >/dev/null 2>&1'
-              output = capture :magento, 'setup:di:compile-multi-tenant --no-ansi', verbosity: Logger::INFO
-            else
-              output = capture :magento, 'setup:di:compile --no-ansi', verbosity: Logger::INFO
-            end
+            output = capture :magento, 'setup:di:compile --no-ansi', verbosity: Logger::INFO
 
-            # 2.0.x never returns a non-zero exit code for errors, so manually check string
             # 2.1.x doesn't return a non-zero exit code for certain errors (see davidalger/capistrano-magento2#41)
             if output.to_s.include? 'Errors during compilation'
               raise Exception, 'DI compilation command execution failed'
@@ -257,49 +288,55 @@ namespace :magento do
         on release_roles :all do
           _magento_version = magento_version
 
-          deploy_languages = fetch(:magento_deploy_languages).join(' ')
           deploy_themes = fetch(:magento_deploy_themes)
           deploy_jobs = fetch(:magento_deploy_jobs)
 
-          if deploy_themes.count() > 0 and _magento_version >= Gem::Version.new('2.1.1')
+          if deploy_themes.count() > 0
             deploy_themes = deploy_themes.join(' -t ').prepend(' -t ')
-          elsif deploy_themes.count() > 0
-            warn "\e[0;31mWarning: the :magento_deploy_themes setting is only supported in Magento 2.1.1 and later\e[0m"
-            deploy_themes = nil
           else
             deploy_themes = nil
           end
 
-          if deploy_jobs and _magento_version >= Gem::Version.new('2.1.1')
+          if deploy_jobs
             deploy_jobs = "--jobs #{deploy_jobs} "
-          elsif deploy_jobs
-            warn "\e[0;31mWarning: the :magento_deploy_jobs setting is only supported in Magento 2.1.1 and later\e[0m"
-            deploy_jobs = nil
           else
             deploy_jobs = nil
           end
 
-          # Output is being checked for a success message because this command may easily fail due to customizations
-          # and 2.0.x CLI commands do not return error exit codes on failure. See magento/magento2#3060 for details.
-          within release_path do
+          # Workaround core-bug with multi-lingual deployments on Magento 2.1.3 and greater. In these versions each
+          # language must be iterated individually. See issue #72 for details.
+          if _magento_version >= Gem::Version.new('2.1.3')
+            deploy_languages = fetch(:magento_deploy_languages)
+          else
+            deploy_languages = [fetch(:magento_deploy_languages).join(' ')]
+          end
 
-            # Workaround for 2.1 specific issue: https://github.com/magento/magento2/pull/6437
+          within release_path do
+            # Magento 2.1 will fail to deploy if this file does not exist and static asset signing is enabled
             execute "touch #{release_path}/pub/static/deployed_version.txt"
 
-            # Generates all but the secure versions of RequireJS configs
-            static_content_deploy "#{deploy_jobs}#{deploy_languages}#{deploy_themes}"
+            # This loop exists to support deploy on versions where each language must be deployed seperately
+            deploy_languages.each do |lang|
+              static_content_deploy "#{deploy_jobs}#{lang}#{deploy_themes}"
+            end
           end
 
-          # Run again with HTTPS env var set to 'on' to pre-generate secure versions of RequireJS configs
-          deploy_flags = ['javascript', 'css', 'less', 'images', 'fonts', 'html', 'misc', 'html-minify']
-            .join(' --no-').prepend(' --no-');
+          # Run again with HTTPS env var set to 'on' to pre-generate secure versions of RequireJS configs. A
+          # single run on these Magento versions will fail to generate the secure requirejs-config.js file.
+          if _magento_version < Gem::Version.new('2.1.8')
+            deploy_flags = ['css', 'less', 'images', 'fonts', 'html', 'misc', 'html-minify']
+              .join(' --no-').prepend(' --no-');
 
-          # Magento 2.1.0 and earlier lack support for these flags, so generation of secure files requires full re-run
-          deploy_flags = nil if _magento_version <= Gem::Version.new('2.1.0')
+            within release_path do with(https: 'on') {
+              # This loop exists to support deploy on versions where each language must be deployed seperately
+              deploy_languages.each do |lang|
+                static_content_deploy "#{deploy_jobs}#{lang}#{deploy_themes}#{deploy_flags}"
+              end
+            } end
+          end
 
-          within release_path do with(https: 'on') {
-            static_content_deploy "#{deploy_jobs}#{deploy_languages}#{deploy_themes}#{deploy_flags}"
-          } end
+          # Set the deployed_version of static content to ensure it matches across all hosts
+          upload!(StringIO.new(deployed_version), "#{release_path}/pub/static/deployed_version.txt")
         end
       end
     end

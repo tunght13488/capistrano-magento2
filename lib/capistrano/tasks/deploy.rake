@@ -11,6 +11,7 @@ include Capistrano::Magento2::Helpers
 
 namespace :deploy do
   before 'deploy:check:linked_files', 'magento:deploy:check'
+  before 'deploy:symlink:linked_files', 'magento:deploy:local_config'
 
   before :starting, :confirm_action do
     if fetch(:magento_deploy_confirm).include? fetch(:stage).to_s
@@ -23,8 +24,10 @@ namespace :deploy do
   task :updated do
     invoke 'magento:deploy:verify'
     invoke 'magento:composer:install' if fetch(:magento_deploy_composer)
+    invoke 'magento:deploy:version_check'
     invoke 'magento:setup:permissions'
     if fetch(:magento_deploy_production)
+      invoke 'magento:deploy:mode:production'
       invoke 'magento:setup:static-content:deploy'
       invoke 'magento:setup:di:compile'
     end

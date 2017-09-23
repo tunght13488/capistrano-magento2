@@ -9,12 +9,14 @@
 
 set :linked_files, fetch(:linked_files, []).push(
   'app/etc/env.php',
+  'app/etc/config.local.php',
   'var/.setup_cronjob_status',
   'var/.update_cronjob_status'
 )
 
 set :linked_files_touch, fetch(:linked_files_touch, []).push(
   'app/etc/env.php',
+  'app/etc/config.local.php',
   'var/.setup_cronjob_status',
   'var/.update_cronjob_status'
 )
@@ -59,5 +61,5 @@ set :magento_deploy_pending_role, fetch(:magento_deploy_pending_role, :all)
 set :magento_deploy_pending_warn, fetch(:magento_deploy_pending_warn, true)
 set :magento_deploy_pending_format, fetch(
   :magento_deploy_pending_format,
-  '--pretty="format:%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s"'
+  '--pretty="format:%C(yellow)%h %Cblue%>(12)%ai %Cgreen%<(7)%aN%Cred%d %Creset%s"'
 )

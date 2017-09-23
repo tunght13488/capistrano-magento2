@@ -1,5 +1,43 @@
 # Capistrano::Magento2 Change Log
 
+0.7.1
+==========
+
+* Fixed deploy routine so production mode is no longer enabled automatically when `:magento_deploy_production` is false
+* Fixed regression in multi-lingual deployment (reverted boxing workaround with 2.1.7 upper limit; release notes are wrong and the issue persists in 2.1.8)
+* Updated double run of static content deploy to only apply to versions prior to 2.1.8 (underling issue was resolved in 2.1.8)
+
+0.7.0
+==========
+
+* Added support for Magento 2.2.0 release candidates
+* Removed support for deployment of Magento versions older than 2.1.1
+* Updated and optimized static content deployment for upcoming Magento 2.2.0 release
+* Updated composer install routine; --no-dev is now used indiscriminately since Magento 2.1.1 and later support it; no more duplicate composer install commands (issue #76)
+* Updated multi-lingual site deployment workaround to apply only to versions 2.1.3 through 2.1.7 as per 2.1.8 release notes the underlying issue has been resolved (issue #72)
+* Added tasks to set production mode and show current mode (magento:deploy:mode:production and magento:deploy:mode:show)
+
+0.6.6
+==========
+
+* Updated date formatting of pending change log output for enhanced readability (PR #73)
+* Fixed bug in static content deploy resulting from a change in behaviour in Magento 2.1.3 and later (PR #74)
+
+0.6.5
+==========
+
+* Added workaround for Magento 2.1.3 bug causing multi-lingual static-content deployment failure (issue #72)
+
+0.6.4
+==========
+
+* Added support for the config.local.php file found in Magento 2.1.6 and later
+
+0.6.3
+==========
+
+* Fixed deployment to multiple hosts resulting in disparate static content versions across target hosts
+
 0.6.2
 ==========
 
